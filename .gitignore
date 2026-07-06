@@ -1,0 +1,107 @@
+# E1-S1: Git Ignore Configuration
+# Ref: NFR-06 (Version Control Standards)
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# === Virtual Environments ===
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# === IDEs ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# === Testing ===
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# === Type Checking ===
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# === Database ===
+*.db
+*.sqlite
+*.sqlite3
+resolve.db
+
+# === Logs ===
+*.log
+logs/
+
+# === Secrets ===
+.env
+.env.local
+.env.*.local
+secrets/
+*.pem
+*.key
+
+# === LangSmith/Langfuse ===
+.langsmith/
+.langfuse/
+
+# === Build Artifacts ===
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Dashboard (React/Vite) ===
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.vite/
+dashboard/.env.local
+
+# === Temporary Files ===
+tmp/
+temp/
+*.tmp
+
+# === slingshot Files ===
+/.slingshot/code-tagging/
+/*.code-workspace

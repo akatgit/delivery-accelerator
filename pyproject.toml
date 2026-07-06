@@ -1,0 +1,26 @@
+[project]
+name = "asda"
+version = "0.1.0"
+description = "Agentic Solution Delivery Accelerator (ASDA)"
+requires-python = ">=3.11"
+dependencies = [
+    "langchain",
+    "langgraph",
+    "langchain-anthropic",
+    "langsmith",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "python-dotenv",
+    "jinja2",
+    "pyyaml",
+    "python-multipart",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backend*"]
