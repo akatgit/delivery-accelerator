@@ -16,6 +16,7 @@ from backend.rubrics.loader import load_rubric
 from backend.schemas.project_context import ProjectContext
 from backend.schemas.review import DimensionScore, Finding, ReviewDomain, ReviewResult, ReviewRubric
 from backend.skills.base import BaseSkill
+from backend.skills.review.evaluate_dimension import EvaluateDimensionSkill, format_project_context_excerpt
 
 logger = logging.getLogger(__name__)
 
@@ -57,18 +58,18 @@ class BaseReviewer(BaseAgent):
         )
         evaluate_dimension = self.get_skill(EVALUATE_DIMENSION_SKILL)
         org_standard = self._extract_org_standards(state)
+        project_context_excerpt = format_project_context_excerpt(state)
 
         dimension_scores: list[DimensionScore] = []
         findings: list[Finding] = []
         skipped_dimensions: list[str] = []
 
         for dimension in self.rubric.dimensions:
-            inputs = {
-                "dimension_name": dimension.name,
-                "dimension_description": dimension.description,
-                "project_context": state,
-                "org_standard": org_standard,
-            }
+            inputs = EvaluateDimensionSkill.build_inputs(
+                dimension,
+                project_context_excerpt=project_context_excerpt,
+                org_standard_content=org_standard,
+            )
             result = self.invoke_skill(
                 evaluate_dimension,
                 inputs,

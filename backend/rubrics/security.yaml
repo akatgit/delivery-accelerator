@@ -1,0 +1,39 @@
+# Security review rubric (BRD_v2.0.md section 13.3, 13.7)
+domain: security
+org_standard_categories:
+  - security
+  - api_design
+weight: 0.25
+
+# Universal 1-10 scoring anchors (section 13.1), shared by every dimension below.
+_scoring_guide: &scoring_guide
+  "1-2": "Not addressed. No meaningful coverage."
+  "3-4": "Mentioned but inadequate. Critical gaps remain."
+  "5-6": "Partially addressed. Lacks depth, specificity, or consistency."
+  "7-8": "Well addressed. Solid coverage with minor gaps."
+  "9-10": "Excellent. Comprehensive, specific, production-ready."
+
+dimensions:
+  - name: Authentication & authorization
+    description: "Auth mechanism, RBAC/ABAC, token lifecycle, session management"
+    scoring_guide: *scoring_guide
+
+  - name: Data protection
+    description: "Encryption at rest/transit, PII handling, data classification"
+    scoring_guide: *scoring_guide
+
+  - name: API security
+    description: "Rate limiting, input validation, CORS, injection prevention"
+    scoring_guide: *scoring_guide
+
+  - name: Infrastructure security
+    description: "Network segmentation, secrets management, least-privilege IAM"
+    scoring_guide: *scoring_guide
+
+  - name: Dependency security
+    description: "Supply chain awareness, vulnerability scanning, dependency pinning"
+    scoring_guide: *scoring_guide
+
+  - name: Audit & logging
+    description: "Security event logging, tamper-proof audit trail, monitoring"
+    scoring_guide: *scoring_guide

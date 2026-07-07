@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ReviewDomain(str, Enum):
@@ -74,6 +74,25 @@ class ReviewResult(BaseModel):
     reviewed_at: str
 
 
+class ScoringGuide(BaseModel):
+    """The universal 1-10 scoring anchors (section 13.1), applied per rubric
+    dimension so a reviewer has anchored language for each score band."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    anchor_1_2: str = Field(alias="1-2", description="Not addressed. No meaningful coverage.")
+    anchor_3_4: str = Field(
+        alias="3-4", description="Mentioned but inadequate. Critical gaps remain."
+    )
+    anchor_5_6: str = Field(
+        alias="5-6", description="Partially addressed. Lacks depth, specificity, or consistency."
+    )
+    anchor_7_8: str = Field(alias="7-8", description="Well addressed. Solid coverage with minor gaps.")
+    anchor_9_10: str = Field(
+        alias="9-10", description="Excellent. Comprehensive, specific, production-ready."
+    )
+
+
 class RubricDimension(BaseModel):
     """A single evaluated dimension within a domain's review rubric (section 13.2-13.6)."""
 
@@ -81,13 +100,16 @@ class RubricDimension(BaseModel):
     description: str = Field(
         description="What this dimension evaluates, e.g. 'Auth mechanism, RBAC/ABAC, token lifecycle'."
     )
+    scoring_guide: ScoringGuide
 
 
 class ReviewRubric(BaseModel):
     """The explicit scoring rubric for one review domain, including its weight in the
-    overall score (section 13.7)."""
+    overall score (section 13.7) and which org standard categories are routed to it
+    (section 5.2 routing table)."""
 
     domain: ReviewDomain
+    org_standard_categories: list[str] = Field(default_factory=list)
     dimensions: list[RubricDimension] = Field(default_factory=list)
     weight: float = Field(
         description="This domain's contribution to the overall weighted score, e.g. 0.25 for architecture."

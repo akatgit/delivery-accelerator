@@ -1,0 +1,36 @@
+# Reliability review rubric (BRD_v2.0.md section 13.5, 13.7)
+domain: reliability
+org_standard_categories:
+  - logging
+  - exception_handling
+  - testing
+weight: 0.20
+
+# Universal 1-10 scoring anchors (section 13.1), shared by every dimension below.
+_scoring_guide: &scoring_guide
+  "1-2": "Not addressed. No meaningful coverage."
+  "3-4": "Mentioned but inadequate. Critical gaps remain."
+  "5-6": "Partially addressed. Lacks depth, specificity, or consistency."
+  "7-8": "Well addressed. Solid coverage with minor gaps."
+  "9-10": "Excellent. Comprehensive, specific, production-ready."
+
+dimensions:
+  - name: Failure modes
+    description: "Failure scenarios per component, blast radius, single points of failure"
+    scoring_guide: *scoring_guide
+
+  - name: Resilience patterns
+    description: "Circuit breakers, retries with backoff, bulkheads, timeout budgets"
+    scoring_guide: *scoring_guide
+
+  - name: Data durability
+    description: "Backup strategy, replication, RPO/RTO"
+    scoring_guide: *scoring_guide
+
+  - name: Observability
+    description: "Health checks, distributed tracing, structured logging, alerting"
+    scoring_guide: *scoring_guide
+
+  - name: Graceful degradation
+    description: "Fallback behaviors, feature flags, partial availability"
+    scoring_guide: *scoring_guide
