@@ -15,6 +15,8 @@ class Settings(BaseModel):
     max_retries: int = int(os.getenv("MAX_RETRIES", "2"))
     chunk_size: int = int(os.getenv("CHUNK_SIZE", "6000"))
     chunk_overlap: int = int(os.getenv("CHUNK_OVERLAP", "500"))
+    scaffold_output_dir: str = os.getenv("SCAFFOLD_OUTPUT_DIR", "./scaffolds")
+    uploads_dir: str = os.getenv("UPLOADS_DIR", "./uploads")
 
 
 settings = Settings()

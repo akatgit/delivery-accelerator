@@ -1,0 +1,35 @@
+# Performance review rubric (BRD_v2.0.md section 13.4, 13.7)
+domain: performance
+org_standard_categories:
+  - api_design
+  - logging
+weight: 0.20
+
+# Universal 1-10 scoring anchors (section 13.1), shared by every dimension below.
+_scoring_guide: &scoring_guide
+  "1-2": "Not addressed. No meaningful coverage."
+  "3-4": "Mentioned but inadequate. Critical gaps remain."
+  "5-6": "Partially addressed. Lacks depth, specificity, or consistency."
+  "7-8": "Well addressed. Solid coverage with minor gaps."
+  "9-10": "Excellent. Comprehensive, specific, production-ready."
+
+dimensions:
+  - name: Latency design
+    description: "Response time targets, async vs sync decisions, critical path"
+    scoring_guide: *scoring_guide
+
+  - name: Caching strategy
+    description: "Cache layers, invalidation strategy, cache pattern choice"
+    scoring_guide: *scoring_guide
+
+  - name: Database performance
+    description: "Indexing, query optimization, connection pooling, read replicas"
+    scoring_guide: *scoring_guide
+
+  - name: Concurrency
+    description: "Thread/worker pool sizing, backpressure, resource contention"
+    scoring_guide: *scoring_guide
+
+  - name: Resource efficiency
+    description: "Right-sizing, auto-scaling triggers, cold start mitigation"
+    scoring_guide: *scoring_guide

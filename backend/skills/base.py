@@ -63,6 +63,13 @@ class BaseSkill:
     output_schema: type[BaseModel]
     max_input_tokens: int = 6000
     chunk_merge_strategy: Literal["union", "merge_and_deduplicate"] = "union"
+    use_structured_output: bool = False
+    """If True, bind `output_schema` via the LLM's `with_structured_output()`
+    instead of asking for raw JSON and parsing it by hand. `output_schema` must
+    then be an object schema (a BaseModel with named fields) rather than a bare
+    `RootModel[list[...]]` -- Anthropic's tool-use schema requires a top-level
+    object, not an array, so list-producing skills should wrap their list in a
+    single field (e.g. `items: list[X]`)."""
 
     def __init__(self, llm: ChatAnthropic | None = None):
         if not getattr(self, "name", None):
@@ -71,6 +78,9 @@ class BaseSkill:
             raise ValueError(f"{type(self).__name__} must define an 'output_schema'")
         self.llm = llm or ChatAnthropic(
             model=settings.model_name, api_key=settings.anthropic_api_key
+        )
+        self._structured_llm = (
+            self.llm.with_structured_output(self.output_schema) if self.use_structured_output else None
         )
         self._prompt_template, self.prompt_version = self._load_prompt_template()
         logger.debug(
@@ -154,20 +164,40 @@ class BaseSkill:
                 self.max_input_tokens,
             )
             return self._invoke_chunked(inputs)
-        raw = self._call_llm_with_retry(rendered)
-        return self._validate_or_correct(rendered, raw)
+        return self._call_and_validate(rendered)
+
+    def _call_and_validate(self, rendered_prompt: str) -> BaseModel:
+        """Dispatch to the structured-output path or the raw-JSON path,
+        depending on `use_structured_output`."""
+        if self.use_structured_output:
+            return self._validate_or_correct_structured(rendered_prompt)
+        raw = self._call_llm_with_retry(rendered_prompt)
+        return self._validate_or_correct(rendered_prompt, raw)
 
     # ------------------------------------------------------------------
     # Layer 2 — retry logic with exponential backoff (section 4.2)
     # ------------------------------------------------------------------
 
-    def _call_llm_with_retry(self, prompt: str) -> str:
+    def _call_with_retry(self, invoke_fn, prompt: str):
+        """Generic exponential-backoff retry around any single-argument
+        LangChain runnable invocation (a raw chat model or a
+        with_structured_output-wrapped one).
+
+        Validation-style errors (`ValidationError`/`ValueError`/`TypeError`) are
+        deliberately not caught here and re-raised immediately: for a
+        with_structured_output runnable, parsing/validation happens inside this
+        same `.invoke()` call, and retrying an identical prompt with backoff
+        can't fix a shape problem the way a corrected prompt can. Callers that
+        want a correction-prompt retry (`_validate_or_correct_structured`) catch
+        those types themselves.
+        """
         backoff_seconds = 1.0
         last_exc: Exception | None = None
         for attempt in range(settings.max_retries + 1):
             try:
-                response = self.llm.invoke(prompt)
-                return response.content if hasattr(response, "content") else str(response)
+                return invoke_fn(prompt)
+            except (ValidationError, ValueError, TypeError):
+                raise
             except Exception as exc:  # LLM timeout, rate limit, transport errors
                 last_exc = exc
                 if attempt < settings.max_retries:
@@ -191,6 +221,10 @@ class BaseSkill:
         raise SkillFailedError(
             self.name, f"LLM call failed after {settings.max_retries + 1} attempts", cause=last_exc
         )
+
+    def _call_llm_with_retry(self, prompt: str) -> str:
+        response = self._call_with_retry(self.llm.invoke, prompt)
+        return response.content if hasattr(response, "content") else str(response)
 
     # ------------------------------------------------------------------
     # Layer 1 — output validation with error-correction retry (section 4.2)
@@ -233,6 +267,51 @@ class BaseSkill:
             cause=last_error,
         )
 
+    def _validate_or_correct_structured(self, prompt: str) -> BaseModel:
+        """Structured-output equivalent of `_validate_or_correct`: the LLM call
+        itself (via `with_structured_output`) already enforces `output_schema`'s
+        shape, so this only needs to retry when that parsing/validation still
+        fails (e.g. the model's tool-call arguments don't satisfy a Pydantic
+        validator) -- transport-level failures are already retried inside
+        `_call_with_retry`."""
+        current_prompt = prompt
+        last_error: Exception | None = None
+        for attempt in range(settings.max_retries + 1):
+            try:
+                result = self._call_with_retry(self._structured_llm.invoke, current_prompt)
+                if isinstance(result, self.output_schema):
+                    return result
+                return self.output_schema.model_validate(result)
+            except SkillFailedError:
+                raise  # transport retries already exhausted; don't mask with a validation retry
+            except (ValidationError, ValueError, TypeError) as exc:
+                last_error = exc
+                if attempt < settings.max_retries:
+                    logger.warning(
+                        "Skill '%s' structured output failed validation (attempt %d/%d): %s — retrying",
+                        self.name,
+                        attempt + 1,
+                        settings.max_retries + 1,
+                        exc,
+                    )
+                    current_prompt = (
+                        f"{prompt}\n\n"
+                        f"Your previous output was invalid: {exc}. "
+                        "Please fix and return correctly structured output."
+                    )
+                else:
+                    logger.error(
+                        "Skill '%s' structured output still invalid after %d attempts: %s",
+                        self.name,
+                        settings.max_retries + 1,
+                        exc,
+                    )
+        raise SkillFailedError(
+            self.name,
+            f"Structured output validation failed after {settings.max_retries + 1} attempts",
+            cause=last_error,
+        )
+
     @staticmethod
     def _extract_json(text: str) -> Any:
         """Parse the LLM's raw output as JSON, tolerating surrounding prose or
@@ -272,8 +351,7 @@ class BaseSkill:
         for i, chunk in enumerate(chunks):
             chunk_inputs = {**inputs, target_key: chunk}
             rendered = self._render_prompt(chunk_inputs)
-            raw = self._call_llm_with_retry(rendered)
-            outputs.append(self._validate_or_correct(rendered, raw))
+            outputs.append(self._call_and_validate(rendered))
             logger.debug("Skill '%s' processed chunk %d/%d", self.name, i + 1, len(chunks))
 
         return self._merge_chunk_outputs(outputs)
